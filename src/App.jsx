@@ -1,77 +1,81 @@
-import { useState } from 'react';
-import { Document, Packer, Paragraph, TextRun, AlignmentType, BorderStyle } from 'docx';
+import { useState, useRef } from 'react';
+import * as docx from 'docx';
 import { saveAs } from 'file-saver';
-import { FileCode2, Download, CheckCircle2 } from 'lucide-react';
+import { Play, CheckCircle2, AlertCircle, TerminalSquare } from 'lucide-react';
 import './index.css';
 
 function App() {
   const [code, setCode] = useState('');
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [isSuccess, setIsSuccess] = useState(false);
+  const [isExecuting, setIsExecuting] = useState(false);
+  const [status, setStatus] = useState({ type: 'idle', message: '' });
 
-  const handleGenerate = async () => {
+  const handleExecute = async () => {
     if (!code.trim()) return;
 
-    setIsGenerating(true);
+    setIsExecuting(true);
+    setStatus({ type: 'idle', message: 'Executing script...' });
     
     try {
-      const lines = code.split('\n');
-      
-      const doc = new Document({
-        creator: "Code to DOCX Generator",
-        title: "Source Code Document",
-        sections: [
-          {
-            properties: {
-              page: {
-                margin: { top: 1440, right: 1440, bottom: 1440, left: 1440 }
-              }
-            },
-            children: [
-              new Paragraph({
-                text: "Source Code",
-                heading: "Heading1",
-                alignment: AlignmentType.CENTER,
-                spacing: { after: 400 },
-                border: {
-                  bottom: {
-                    style: BorderStyle.SINGLE,
-                    size: 12,
-                    color: "000000",
-                    space: 4,
-                  }
-                }
-              }),
-              ...lines.map(line => {
-                // Handle tabs by replacing them with 4 spaces for better rendering in Word
-                const formattedLine = line.replace(/\t/g, '    ');
-                return new Paragraph({
-                  spacing: { before: 0, after: 0, line: 240 },
-                  children: [
-                    new TextRun({
-                      text: formattedLine || " ", // Ensure empty lines are rendered
-                      font: "Courier New",
-                      size: 20, // 10pt (half-points)
-                      color: "24292e"
-                    })
-                  ]
-                });
-              })
-            ]
-          }
-        ]
-      });
+      let isFileSaved = false;
 
-      const blob = await Packer.toBlob(doc);
-      saveAs(blob, "SourceCode.docx");
-      
-      setIsSuccess(true);
-      setTimeout(() => setIsSuccess(false), 3000);
+      // Create fake require function to mock Node.js environment
+      const fakeRequire = (moduleName) => {
+        if (moduleName === 'docx') {
+          return docx;
+        }
+        if (moduleName === 'fs') {
+          return {
+            writeFileSync: (filePath, data) => {
+              const fileName = filePath.split(/[\\/]/).pop() || 'document.docx';
+              
+              // docx in browser returns Uint8Array/ArrayBuffer, which we can Blob directly
+              const blob = new Blob([data], { 
+                type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' 
+              });
+              
+              saveAs(blob, fileName);
+              isFileSaved = true;
+              setStatus({ type: 'success', message: `Berhasil! File diunduh sebagai: ${fileName}` });
+              setIsExecuting(false);
+            }
+          };
+        }
+        if (moduleName === 'path') {
+          return {
+            join: (...args) => args.join('/')
+          };
+        }
+        
+        console.warn(`Module "${moduleName}" is not mocked.`);
+        return {};
+      };
+
+      // Create a secure wrapper to evaluate the code
+      const wrapperCode = `
+        return (async function(require, __dirname) {
+          try {
+            ${code}
+          } catch(err) {
+            throw err;
+          }
+        })(require, __dirname);
+      `;
+
+      // Execute the script
+      const runner = new Function('require', '__dirname', wrapperCode);
+      await runner(fakeRequire, '/executor');
+
+      // Safety timeout in case the script is purely async but we don't catch the promise
+      setTimeout(() => {
+        if (isExecuting && !isFileSaved) {
+            setIsExecuting(false);
+        }
+      }, 8000);
+
     } catch (error) {
-      console.error("Error generating DOCX:", error);
-      alert("Failed to generate DOCX file. Check console for details.");
-    } finally {
-      setIsGenerating(false);
+      console.error("Script Execution Error:", error);
+      setStatus({ type: 'error', message: error.toString() });
+      setIsExecuting(false);
     }
   };
 
@@ -79,38 +83,45 @@ function App() {
     <div className="app-container">
       <header className="header">
         <h1 className="title">
-          <FileCode2 size={40} color="#60a5fa" />
-          Code to DOCX
+          <TerminalSquare size={40} color="#60a5fa" />
+          KodeExecutor
         </h1>
-        <p className="subtitle">Paste your beautiful code below and export it to a Word document instantly.</p>
+        <p className="subtitle">Paste script Node.js Claude Anda di bawah ini dan saya akan mengeksekusinya untuk men-download DOCX-nya!</p>
       </header>
 
       <main className="editor-panel">
         <div className="textarea-wrapper">
           <textarea
             className="code-input"
-            placeholder="// Paste your full source code here...&#10;function helloWorld() {&#10;  console.log('Hello, DOCX!');&#10;}"
+            placeholder="// Paste full source code generate.js dari Claude di sini...&#10;const { Document, Packer, Paragraph } = require('docx');&#10;const fs = require('fs');&#10;..."
             value={code}
             onChange={(e) => setCode(e.target.value)}
             spellCheck="false"
           />
         </div>
         
+        {status.message && status.type !== 'idle' && (
+          <div className={`status-panel ${status.type}`}>
+            {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
+            <span>{status.message}</span>
+          </div>
+        )}
+
         <div className="actions">
           <button 
-            className={`btn-primary ${isSuccess ? 'success' : ''}`}
-            onClick={handleGenerate}
-            disabled={!code.trim() || isGenerating}
+            className={`btn-primary ${status.type === 'success' ? 'success' : ''}`}
+            onClick={handleExecute}
+            disabled={!code.trim() || isExecuting}
           >
-            {isSuccess ? (
+            {status.type === 'success' ? (
               <>
                 <CheckCircle2 size={20} />
-                Successfully Downloaded!
+                Berhasil Dieksekusi!
               </>
             ) : (
               <>
-                <Download size={20} />
-                {isGenerating ? 'Generating...' : 'Generate DOCX'}
+                <Play size={20} />
+                {isExecuting ? 'Mengeksekusi...' : 'Jalankan & Download DOCX'}
               </>
             )}
           </button>
