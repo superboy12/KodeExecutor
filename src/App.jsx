@@ -137,9 +137,9 @@ function App() {
       let processedCode = lines.join('\n');
 
       // Add simple auto-fix for deprecated docx syntax
-      if (processedCode.includes('new PageNumber()') || processedCode.includes('new docx.PageNumber()')) {
-        processedCode = processedCode.replace(/new\s+docx\.PageNumber\s*\(\s*\)/g, 'docx.PageNumber.CURRENT');
-        processedCode = processedCode.replace(/new\s+PageNumber\s*\(\s*\)/g, 'PageNumber.CURRENT');
+      if (/new\s+(?:docx\.)?PageNumber\s*\(\s*\)/i.test(processedCode)) {
+        processedCode = processedCode.replace(/new\s+docx\.PageNumber\s*\(\s*\)/gi, 'docx.PageNumber.CURRENT');
+        processedCode = processedCode.replace(/new\s+PageNumber\s*\(\s*\)/gi, 'PageNumber.CURRENT');
         appendLog(`ℹ️ Auto-fix: Mengubah 'new PageNumber()' menjadi 'PageNumber.CURRENT' untuk kompatibilitas docx v9+`);
       }
 
