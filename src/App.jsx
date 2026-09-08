@@ -3,7 +3,7 @@ import * as docx from 'docx';
 import PptxGenJS from 'pptxgenjs';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import { Play, CheckCircle2, AlertCircle, TerminalSquare, FileText, FileDown, Archive, Image, Eye, EyeOff, Code2, RotateCcw, Github } from 'lucide-react';
+import { Play, CheckCircle2, AlertCircle, TerminalSquare, FileText, FileDown, Archive, Image, Eye, EyeOff, Code2, RotateCcw, ExternalLink } from 'lucide-react';
 import './index.css';
 
 // Helper function to format file sizes
@@ -278,7 +278,7 @@ function App() {
             <span className="badge badge-svg">SVG</span>
           </div>
           <a className="navbar-link" href="https://github.com/superboy12/KodeExecutor" target="_blank" rel="noopener noreferrer">
-            <Github size={16} />
+            <ExternalLink size={14} />
             <span>GitHub</span>
           </a>
         </div>
