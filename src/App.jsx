@@ -3,7 +3,7 @@ import * as docx from 'docx';
 import PptxGenJS from 'pptxgenjs';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import { Play, CheckCircle2, AlertCircle, TerminalSquare, FileText, FileDown, Archive, Image, Eye, EyeOff } from 'lucide-react';
+import { Play, CheckCircle2, AlertCircle, TerminalSquare, FileText, FileDown, Archive, Image, Eye, EyeOff, Code2, RotateCcw, Github } from 'lucide-react';
 import './index.css';
 
 // Helper function to format file sizes
@@ -261,123 +261,200 @@ function App() {
   };
 
   return (
-    <div className="app-container">
-      <header className="header">
-        <h1 className="title">
-          <TerminalSquare size={40} color="#60a5fa" />
-          KodeExecutor
-        </h1>
-        <p className="subtitle">
-          Paste script Node.js Claude Anda di bawah ini dan saya akan mengeksekusinya untuk men-generate file DOCX, PPTX, SVG, dan lainnya!
-        </p>
-      </header>
-
-      <main className="editor-panel">
-        <div className="textarea-wrapper">
-          <textarea
-            className="code-input"
-            placeholder={"// Paste full source code generate.js dari Claude di sini...\nconst { Document, Packer, Paragraph } = require('docx');\nconst fs = require('fs');\n..."}
-            value={code}
-            onChange={(e) => setCode(e.target.value)}
-            spellCheck="false"
-          />
-        </div>
-
-        {/* Status panel */}
-        {status.message && status.type !== 'idle' && (
-          <div className={`status-panel ${status.type}`}>
-            {status.type === 'success' ? <CheckCircle2 size={20} /> : <AlertCircle size={20} />}
-            <span>{status.message}</span>
+    <>
+      {/* ===== NAVBAR ===== */}
+      <nav className="navbar">
+        <div className="navbar-brand">
+          <div className="navbar-logo">
+            <Code2 size={18} />
           </div>
-        )}
+          <span className="navbar-title">KodeExecutor</span>
+          <span className="navbar-badge">Beta</span>
+        </div>
+        <div className="navbar-links">
+          <div className="feature-badges">
+            <span className="badge badge-docx">DOCX</span>
+            <span className="badge badge-pptx">PPTX</span>
+            <span className="badge badge-svg">SVG</span>
+          </div>
+          <a className="navbar-link" href="https://github.com/superboy12/KodeExecutor" target="_blank" rel="noopener noreferrer">
+            <Github size={16} />
+            <span>GitHub</span>
+          </a>
+        </div>
+      </nav>
 
-        {/* Downloaded files list */}
-        {downloadedFiles.length > 0 && (
-          <div className="files-list">
-            <div className="files-header">
-              <p className="files-title">Dokumen yang Dihasilkan ({downloadedFiles.length}):</p>
-              {downloadedFiles.length > 1 && (
-                <button className="btn-zip" onClick={handleDownloadZip}>
-                  <Archive size={14} /> Download Semua (.ZIP)
+      {/* ===== MAIN LAYOUT ===== */}
+      <div className="app-container">
+        <div className="main-content">
+
+          {/* ===== EDITOR PANE ===== */}
+          <div className="editor-pane">
+            <div className="pane-header">
+              <div className="pane-title">
+                <TerminalSquare size={14} />
+                Script Editor
+              </div>
+              <div className="pane-actions">
+                {status.type !== 'idle' && (
+                  <button className="btn-reset" onClick={handleReset}>
+                    <RotateCcw size={14} />
+                    Reset
+                  </button>
+                )}
+                <button
+                  className={`btn-execute ${status.type === 'success' ? 'success' : ''}`}
+                  onClick={handleExecute}
+                  disabled={!code.trim() || isExecuting}
+                >
+                  {isExecuting ? (
+                    <>
+                      <div className="spinner" />
+                      Mengeksekusi...
+                    </>
+                  ) : status.type === 'success' ? (
+                    <>
+                      <CheckCircle2 size={15} />
+                      Eksekusi Ulang
+                    </>
+                  ) : (
+                    <>
+                      <Play size={15} />
+                      Jalankan
+                    </>
+                  )}
                 </button>
-              )}
+              </div>
             </div>
-            
-            {downloadedFiles.map((f, i) => (
-              <div key={i} className="file-item-wrapper">
-                <div className="file-item">
-                  <div className="file-info">
-                    {isSvgFile(f.name) ? <Image size={18} color="#a78bfa" /> : <FileText size={18} color="#10b981" />}
-                    <span className="file-name" title={f.name}>{f.name}</span>
-                    <span className="file-size">{formatBytes(f.size)}</span>
-                  </div>
-                  <div className="file-actions">
-                    {isSvgFile(f.name) && (
-                      <button
-                        className="btn-icon btn-preview"
-                        onClick={() => toggleSvgPreview(i, f)}
-                        title={svgPreviews[i] ? 'Tutup Preview' : 'Preview SVG'}
-                      >
-                        {svgPreviews[i] ? <EyeOff size={18} /> : <Eye size={18} />}
-                      </button>
-                    )}
-                    <button 
-                      className="btn-icon" 
-                      onClick={() => handleDownloadSingle(f)} 
-                      title="Download Ulang"
-                    >
-                      <FileDown size={18} />
-                    </button>
-                  </div>
+
+            <textarea
+              className="code-input"
+              placeholder={"// Paste script Node.js dari Claude di sini...\n\nconst { Document, Packer, Paragraph } = require('docx');\nconst fs = require('fs');\n\n// Script Anda akan dieksekusi di browser"}
+              value={code}
+              onChange={(e) => setCode(e.target.value)}
+              spellCheck="false"
+            />
+
+            <div className="editor-footer">
+              <div className="editor-hint">
+                Supports <kbd>docx</kbd> <kbd>pptxgenjs</kbd> <kbd>fs</kbd> <kbd>path</kbd>
+              </div>
+              <span className="char-count">{code.length > 0 ? `${code.split('\n').length} lines` : ''}</span>
+            </div>
+          </div>
+
+          {/* ===== OUTPUT PANE ===== */}
+          <div className="output-pane">
+            <div className="pane-header">
+              <div className="pane-title">
+                <FileDown size={14} />
+                Output
+              </div>
+            </div>
+
+            {/* Empty state */}
+            {status.type === 'idle' && downloadedFiles.length === 0 && logs.length === 0 && (
+              <div className="output-empty">
+                <div className="output-empty-icon">
+                  <Play size={28} color="var(--text-tertiary)" />
                 </div>
-                {svgPreviews[i] && (
-                  <div className="svg-preview">
-                    <img src={svgPreviews[i]} alt={f.name} />
+                <h3>Belum ada output</h3>
+                <p>Paste script di editor lalu klik Jalankan untuk melihat hasilnya di sini.</p>
+              </div>
+            )}
+
+            {/* Has content */}
+            {(status.type !== 'idle' || downloadedFiles.length > 0 || logs.length > 0) && (
+              <div className="output-content">
+
+                {/* Status bar */}
+                {status.message && status.type !== 'idle' && (
+                  <div className={`status-bar ${status.type}`}>
+                    {status.type === 'success' ? <CheckCircle2 size={16} /> : <AlertCircle size={16} />}
+                    <span>{status.message}</span>
                   </div>
                 )}
+
+                {/* Downloaded files */}
+                {downloadedFiles.length > 0 && (
+                  <div className="files-section">
+                    <div className="section-header">
+                      <div className="section-title">
+                        File yang Dihasilkan
+                        <span className="section-count">{downloadedFiles.length}</span>
+                      </div>
+                      {downloadedFiles.length > 1 && (
+                        <button className="btn-zip" onClick={handleDownloadZip}>
+                          <Archive size={13} /> Download ZIP
+                        </button>
+                      )}
+                    </div>
+
+                    <div className="files-grid">
+                      {downloadedFiles.map((f, i) => (
+                        <div key={i} className="file-item-wrapper">
+                          <div className="file-item">
+                            <div className="file-info">
+                              <div className={`file-icon ${isSvgFile(f.name) ? 'svg' : 'doc'}`}>
+                                {isSvgFile(f.name) ? <Image size={16} /> : <FileText size={16} />}
+                              </div>
+                              <div className="file-meta">
+                                <span className="file-name" title={f.name}>{f.name}</span>
+                                <span className="file-size">{formatBytes(f.size)}</span>
+                              </div>
+                            </div>
+                            <div className="file-actions">
+                              {isSvgFile(f.name) && (
+                                <button
+                                  className="btn-icon btn-preview"
+                                  onClick={() => toggleSvgPreview(i, f)}
+                                  title={svgPreviews[i] ? 'Tutup Preview' : 'Preview SVG'}
+                                >
+                                  {svgPreviews[i] ? <EyeOff size={16} /> : <Eye size={16} />}
+                                </button>
+                              )}
+                              <button
+                                className="btn-icon"
+                                onClick={() => handleDownloadSingle(f)}
+                                title="Download"
+                              >
+                                <FileDown size={16} />
+                              </button>
+                            </div>
+                          </div>
+                          {svgPreviews[i] && (
+                            <div className="svg-preview">
+                              <img src={svgPreviews[i]} alt={f.name} />
+                            </div>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {/* Console logs */}
+                {logs.length > 0 && (
+                  <div className="log-section">
+                    <div className="section-title">
+                      Console
+                      <span className="section-count">{logs.length}</span>
+                    </div>
+                    <div className="log-content">
+                      {logs.map((l, i) => (
+                        <div key={i} className="log-line">{l}</div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+
               </div>
-            ))}
-          </div>
-        )}
-
-        {/* Console log output */}
-        {logs.length > 0 && (
-          <div className="log-panel">
-            <p className="log-title">Output Console:</p>
-            <div className="log-content">
-              {logs.map((l, i) => (
-                <div key={i} className="log-line">{l}</div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="actions">
-          {status.type !== 'idle' && (
-            <button className="btn-secondary" onClick={handleReset}>
-              Reset
-            </button>
-          )}
-          <button
-            className={`btn-primary ${status.type === 'success' ? 'success' : ''}`}
-            onClick={handleExecute}
-            disabled={!code.trim() || isExecuting}
-          >
-            {status.type === 'success' ? (
-              <>
-                <CheckCircle2 size={20} />
-                Eksekusi Ulang
-              </>
-            ) : (
-              <>
-                <Play size={20} />
-                {isExecuting ? 'Mengeksekusi...' : 'Jalankan Script'}
-              </>
             )}
-          </button>
+          </div>
+
         </div>
-      </main>
-    </div>
+      </div>
+    </>
   );
 }
 
