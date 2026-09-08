@@ -115,14 +115,30 @@ function App() {
       const lines = code.split('\n');
       let patched = false;
 
-      // Calculate brace depth at the start of each line to identify top-level statements
+      // Calculate brace depth at the start of each line, skipping braces inside strings
       const braceDepthAtLine = [];
       let depth = 0;
       for (let i = 0; i < lines.length; i++) {
         braceDepthAtLine[i] = depth;
-        for (const ch of lines[i]) {
-          if (ch === '{') depth++;
-          else if (ch === '}') depth--;
+        let inString = false;
+        let stringChar = '';
+        let escaped = false;
+        for (let j = 0; j < lines[i].length; j++) {
+          const ch = lines[i][j];
+          if (escaped) { escaped = false; continue; }
+          if (ch === '\\') { escaped = true; continue; }
+          if (inString) {
+            if (ch === stringChar) inString = false;
+            continue;
+          }
+          if (ch === '"' || ch === "'" || ch === '`') {
+            inString = true;
+            stringChar = ch;
+          } else if (ch === '{') {
+            depth++;
+          } else if (ch === '}') {
+            depth--;
+          }
         }
       }
 
