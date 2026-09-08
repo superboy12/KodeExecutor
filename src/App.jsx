@@ -114,12 +114,26 @@ function App() {
       // Preprocess: add 'await' to the last top-level function call in the script.
       const lines = code.split('\n');
       let patched = false;
+
+      // Calculate brace depth at the start of each line to identify top-level statements
+      const braceDepthAtLine = [];
+      let depth = 0;
+      for (let i = 0; i < lines.length; i++) {
+        braceDepthAtLine[i] = depth;
+        for (const ch of lines[i]) {
+          if (ch === '{') depth++;
+          else if (ch === '}') depth--;
+        }
+      }
+
       for (let i = lines.length - 1; i >= 0 && !patched; i--) {
         const trimmed = lines[i].trim();
-        // Match a standalone function call line (not a definition, not inside a block)
+        // Only patch top-level statements (brace depth 0)
+        if (braceDepthAtLine[i] !== 0) continue;
+        // Match a standalone function call line, including dotted names like Packer.toBuffer()
         if (
           trimmed &&
-          /^[a-zA-Z_$][a-zA-Z0-9_$]*\s*\(/.test(trimmed) &&
+          /^[a-zA-Z_$][a-zA-Z0-9_$.]*\s*\(/.test(trimmed) &&
           !trimmed.startsWith('//') &&
           !trimmed.startsWith('*') &&
           !trimmed.startsWith('function') &&
