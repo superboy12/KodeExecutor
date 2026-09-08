@@ -382,6 +382,48 @@ body::after {
   background: rgba(16, 185, 129, 0.2);
 }
 
+.file-item-wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.file-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.btn-preview {
+  color: #a78bfa !important;
+}
+
+.btn-preview:hover {
+  background: rgba(167, 139, 250, 0.2) !important;
+}
+
+.svg-preview {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(167, 139, 250, 0.2);
+  border-radius: 0 0 12px 12px;
+  padding: 1rem;
+  margin-top: -4px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  overflow: auto;
+  max-height: 500px;
+  animation: scaleIn 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.svg-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 0.5rem;
+}
+
 .log-panel {
   background-color: rgba(0, 0, 0, 0.4);
   border: 1px solid rgba(255,255,255,0.05);

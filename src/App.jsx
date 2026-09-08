@@ -3,7 +3,7 @@ import * as docx from 'docx';
 import PptxGenJS from 'pptxgenjs';
 import { saveAs } from 'file-saver';
 import JSZip from 'jszip';
-import { Play, CheckCircle2, AlertCircle, TerminalSquare, FileText, FileDown, Archive } from 'lucide-react';
+import { Play, CheckCircle2, AlertCircle, TerminalSquare, FileText, FileDown, Archive, Image, Eye, EyeOff } from 'lucide-react';
 import './index.css';
 
 // Helper function to format file sizes
@@ -22,6 +22,7 @@ function App() {
   const [status, setStatus] = useState({ type: 'idle', message: '' });
   const [logs, setLogs] = useState([]);
   const [downloadedFiles, setDownloadedFiles] = useState([]);
+  const [svgPreviews, setSvgPreviews] = useState({});
 
   const appendLog = (msg) => {
     setLogs(prev => [...prev, String(msg)]);
@@ -88,6 +89,8 @@ function App() {
                 mimeType = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
               } else if (fileName.endsWith('.xlsx')) {
                 mimeType = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+              } else if (fileName.endsWith('.svg')) {
+                mimeType = 'image/svg+xml';
               }
 
               const blob = data instanceof Blob
@@ -190,7 +193,7 @@ function App() {
       if (filesDownloaded.length > 0) {
         setStatus({
           type: 'success',
-          message: `Berhasil! ${filesDownloaded.length} file DOCX telah di-generate.`
+          message: `Berhasil! ${filesDownloaded.length} file telah di-generate.`
         });
       } else {
         setStatus({
@@ -231,9 +234,30 @@ function App() {
   };
 
   const handleReset = () => {
+    // Revoke SVG preview URLs to prevent memory leaks
+    Object.values(svgPreviews).forEach(url => URL.revokeObjectURL(url));
     setStatus({ type: 'idle', message: '' });
     setLogs([]);
     setDownloadedFiles([]);
+    setSvgPreviews({});
+  };
+
+  const isSvgFile = (fileName) => fileName.toLowerCase().endsWith('.svg');
+
+  const toggleSvgPreview = (index, file) => {
+    setSvgPreviews(prev => {
+      if (prev[index]) {
+        // Close preview, revoke URL
+        URL.revokeObjectURL(prev[index]);
+        const next = { ...prev };
+        delete next[index];
+        return next;
+      } else {
+        // Open preview
+        const url = URL.createObjectURL(file.blob);
+        return { ...prev, [index]: url };
+      }
+    });
   };
 
   return (
@@ -244,7 +268,7 @@ function App() {
           KodeExecutor
         </h1>
         <p className="subtitle">
-          Paste script Node.js Claude Anda di bawah ini dan saya akan mengeksekusinya untuk men-download DOCX-nya!
+          Paste script Node.js Claude Anda di bawah ini dan saya akan mengeksekusinya untuk men-generate file DOCX, PPTX, SVG, dan lainnya!
         </p>
       </header>
 
@@ -280,19 +304,37 @@ function App() {
             </div>
             
             {downloadedFiles.map((f, i) => (
-              <div key={i} className="file-item">
-                <div className="file-info">
-                  <FileText size={18} color="#10b981" />
-                  <span className="file-name" title={f.name}>{f.name}</span>
-                  <span className="file-size">{formatBytes(f.size)}</span>
+              <div key={i} className="file-item-wrapper">
+                <div className="file-item">
+                  <div className="file-info">
+                    {isSvgFile(f.name) ? <Image size={18} color="#a78bfa" /> : <FileText size={18} color="#10b981" />}
+                    <span className="file-name" title={f.name}>{f.name}</span>
+                    <span className="file-size">{formatBytes(f.size)}</span>
+                  </div>
+                  <div className="file-actions">
+                    {isSvgFile(f.name) && (
+                      <button
+                        className="btn-icon btn-preview"
+                        onClick={() => toggleSvgPreview(i, f)}
+                        title={svgPreviews[i] ? 'Tutup Preview' : 'Preview SVG'}
+                      >
+                        {svgPreviews[i] ? <EyeOff size={18} /> : <Eye size={18} />}
+                      </button>
+                    )}
+                    <button 
+                      className="btn-icon" 
+                      onClick={() => handleDownloadSingle(f)} 
+                      title="Download Ulang"
+                    >
+                      <FileDown size={18} />
+                    </button>
+                  </div>
                 </div>
-                <button 
-                  className="btn-icon" 
-                  onClick={() => handleDownloadSingle(f)} 
-                  title="Download Ulang"
-                >
-                  <FileDown size={18} />
-                </button>
+                {svgPreviews[i] && (
+                  <div className="svg-preview">
+                    <img src={svgPreviews[i]} alt={f.name} />
+                  </div>
+                )}
               </div>
             ))}
           </div>
