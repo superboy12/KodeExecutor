@@ -38,8 +38,8 @@ function App() {
 
     const filesDownloaded = [];
 
-    // Deteksi jika input adalah raw SVG
-    if (/^\s*(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg/i.test(code)) {
+    // Deteksi jika input adalah raw SVG (atau kode XML/HTML lainnya)
+    if (code.trim().startsWith('<')) {
       try {
         const blob = new Blob([code], { type: 'image/svg+xml' });
         const fileName = 'diagram.svg';
