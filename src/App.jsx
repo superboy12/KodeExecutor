@@ -41,7 +41,12 @@ function App() {
     // Deteksi jika input adalah raw SVG (atau kode XML/HTML lainnya)
     if (code.trim().startsWith('<')) {
       try {
-        const blob = new Blob([code], { type: 'image/svg+xml' });
+        // Auto-fix: XML strict parsing tidak mengizinkan double-hyphen (--) di dalam comment
+        const sanitizedSvg = code.replace(/<!--([\s\S]*?)-->/g, (match, innerComment) => {
+          return '<!--' + innerComment.replace(/-/g, '=') + '-->';
+        });
+
+        const blob = new Blob([sanitizedSvg], { type: 'image/svg+xml' });
         const fileName = 'diagram.svg';
         saveAs(blob, fileName);
         filesDownloaded.push({ name: fileName, blob, size: blob.size });
