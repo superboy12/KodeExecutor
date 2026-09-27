@@ -32,11 +32,33 @@ function App() {
     if (!code.trim()) return;
 
     setIsExecuting(true);
-    setStatus({ type: 'idle', message: 'Mengeksekusi script...' });
+    setStatus({ type: 'idle', message: 'Mengeksekusi...' });
     setLogs([]);
     setDownloadedFiles([]);
 
     const filesDownloaded = [];
+
+    // Deteksi jika input adalah raw SVG
+    if (/^\s*(?:<\?xml[^>]*>\s*)?(?:<!--[\s\S]*?-->\s*)*<svg/i.test(code)) {
+      try {
+        const blob = new Blob([code], { type: 'image/svg+xml' });
+        const fileName = 'diagram.svg';
+        saveAs(blob, fileName);
+        filesDownloaded.push({ name: fileName, blob, size: blob.size });
+        setDownloadedFiles([...filesDownloaded]);
+        
+        setStatus({
+          type: 'success',
+          message: 'Berhasil! File SVG telah di-generate.'
+        });
+      } catch (error) {
+        console.error('SVG Generation Error:', error);
+        setStatus({ type: 'error', message: error.toString() });
+      } finally {
+        setIsExecuting(false);
+      }
+      return;
+    }
 
     try {
       // Intercept console.log/error/warn for display
@@ -329,7 +351,7 @@ function App() {
 
             <textarea
               className="code-input"
-              placeholder={"// Paste script Node.js dari Claude di sini...\n\nconst { Document, Packer, Paragraph } = require('docx');\nconst fs = require('fs');\n\n// Script Anda akan dieksekusi di browser"}
+              placeholder={"// Paste script Node.js atau kode raw SVG di sini...\n\nconst { Document, Packer, Paragraph } = require('docx');\nconst fs = require('fs');\n\n// Script Anda akan dieksekusi di browser"}
               value={code}
               onChange={(e) => setCode(e.target.value)}
               spellCheck="false"
