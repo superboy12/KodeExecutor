@@ -244,7 +244,7 @@ function App() {
           } catch(err) {
             throw err;
           }
-        })(require, __dirname, fakeConsole, { exit: () => {} });
+        })(require, __dirname, fakeConsole, { exit: () => {}, argv: ['node', 'script.js'] });
       `;
 
       const runner = new Function('require', '__dirname', 'fakeConsole', wrapperCode);
