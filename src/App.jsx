@@ -51,7 +51,7 @@ function App() {
         saveAs(blob, fileName);
         filesDownloaded.push({ name: fileName, blob, size: blob.size });
         setDownloadedFiles([...filesDownloaded]);
-        
+
         setStatus({
           type: 'success',
           message: 'Berhasil! File SVG telah di-generate.'
@@ -108,7 +108,7 @@ function App() {
           return {
             writeFileSync: (filePath, data) => {
               const fileName = filePath.split(/[/\\]/).pop() || 'document.docx';
-              
+
               let mimeType = 'application/octet-stream';
               if (fileName.endsWith('.docx')) {
                 mimeType = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
@@ -231,7 +231,17 @@ function App() {
 
     } catch (error) {
       console.error('Script Execution Error:', error);
-      setStatus({ type: 'error', message: error.toString() });
+      const stack = error.stack || '';
+      const match = stack.match(/<anonymous>:(\d+):(\d+)/);
+      let lineHint = '';
+      if (match) {
+        const rawLine = parseInt(match[1], 10);
+        const estimatedLine = Math.max(1, rawLine - 3);
+        lineHint = ` (sekitar baris ${estimatedLine})`;
+        appendLog(`📍 Error terdeteksi di sekitar baris ${estimatedLine} pada editor.`);
+      }
+      appendLog(`[ERROR] ${error.toString()}`);
+      setStatus({ type: 'error', message: `${error.toString()}${lineHint}` });
     } finally {
       setIsExecuting(false);
     }
@@ -242,11 +252,11 @@ function App() {
       setStatus(prev => ({ ...prev, message: 'Membuat file ZIP...' }));
       const JSZip = (await import('jszip')).default;
       const zip = new JSZip();
-      
+
       downloadedFiles.forEach(f => {
         zip.file(f.name, f.blob);
       });
-      
+
       const content = await zip.generateAsync({ type: "blob" });
       saveAs(content, "documents.zip");
       setStatus({ type: 'success', message: `Berhasil! ZIP berisi ${downloadedFiles.length} file telah diunduh.` });
